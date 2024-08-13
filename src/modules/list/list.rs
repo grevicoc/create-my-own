@@ -1,13 +1,14 @@
-use std::ptr;
+use std::{ptr, string};
+use std::fmt::{Debug, Display, Formatter, Result};
 
 #[derive(Debug)]
-pub struct List<T> {
+pub struct List<T: Display> {
     capacity: usize,
     size: usize,
     array: *mut T
 }
 
-impl<T> List<T> {    
+impl<T: Display> List<T> {    
     pub fn new() -> Self {
         let init_capacity = 100;
         let array = unsafe {
@@ -30,6 +31,7 @@ impl<T> List<T> {
         return self.size;
     }
 
+    // Get an item from the specific index of the list.
     pub fn get(&self, index: usize) -> Option<&T>  {
         if index < self.size {
             unsafe {
@@ -43,6 +45,7 @@ impl<T> List<T> {
         }
     }
 
+    // Append an item from the end of the list.
     pub fn add(&mut self, object: T) {
         if self.size == self.capacity {
             self.resize();
@@ -57,7 +60,8 @@ impl<T> List<T> {
         self.size += 1;
     }
 
-    pub fn delete_at(&mut self) -> Option<T> {
+    // Remove last item.
+    pub fn delete_last(&mut self) -> Option<T> {
         if self.size == 0 {
             return None;
         }
@@ -68,6 +72,27 @@ impl<T> List<T> {
             let retval = ptr::read(pointer);
             return Some(retval)
         }
+    }
+
+    pub fn insert_at(&mut self, object: T, index: usize) {
+        if self.size == self.capacity {
+            self.resize();
+        }
+
+        unsafe {
+            for i in (index..self.size).rev() {
+                let shift_source = self.array.add(i);
+                let shift_dest = self.array.add(i+1);
+
+                let object_source = ptr::read(shift_source);
+                ptr::write(shift_dest, object_source);
+            }
+
+            let allocated_pointer = self.array.add(index);
+            ptr::write(allocated_pointer, object);
+        }
+
+        self.size += 1;
     }
 
     fn resize(&mut self) {
@@ -87,7 +112,7 @@ impl<T> List<T> {
     }
 }
 
-impl<T> Drop for List<T> {
+impl<T: Display> Drop for List<T> {
     // TODO: I think the implementation of current drop somehow is not safe.. Because when an object being hold by >1 list and we drop one of the list it will frop the object and make other list contain an invalid object..?
     fn drop(&mut self) {
         unsafe {
@@ -100,3 +125,17 @@ impl<T> Drop for List<T> {
         }
     }
 }
+
+// impl<T: Display> Display for List<T> {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+//         unsafe {
+//             let string_arr = string::String::new();
+//             for i in 0..self.size {
+//                 let obj = self.get(i);
+//                 let objString = string::String::from(obj.unwrap());
+//                 string_arr.
+//             }
+//             writeln!(f, "size: {}, capacity: {}, array: {}", self.size, self. capacity, temp_array)
+//         }
+//     }
+// }
